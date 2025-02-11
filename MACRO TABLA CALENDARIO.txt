@@ -1,0 +1,171 @@
+Sub GenerarCalendarioPorAños()
+    Dim ws As Worksheet
+    Dim AñoInicio As Variant
+    Dim AñoFin As Variant
+    Dim FechaActual As Date
+    Dim FechaInicio As Date
+    Dim FechaFin As Date
+    Dim Fila As Long
+    Dim SemanaInicio As Date
+    Dim SemanaDelAño As Integer
+    Dim Detalle As String
+    Dim Trimestre As Integer
+    Dim Semestre As Integer
+    Dim EsFeriado As Integer
+    Dim SemanaGlobal As Long
+    Dim SemanaActual As Integer
+    Dim wsNew As Worksheet
+    Dim SheetName As String
+    Dim SheetIndex As Integer
+    Dim DiaDelAño As Integer
+
+    ' Inicializar el nombre de la hoja
+    SheetName = "dimCalendario"
+    SheetIndex = 1
+
+    ' Verificar si ya existe una hoja con el nombre "dimCalendario" o nombres con sufijo numérico
+    Do While SheetExists(SheetName)
+        ' Incrementar el índice del nombre de la hoja
+        SheetIndex = SheetIndex + 1
+        SheetName = "dimCalendario" & SheetIndex
+    Loop
+
+    ' Crear una nueva hoja con el nombre generado y agregarla al final
+    Set wsNew = ActiveWorkbook.Sheets.Add(After:=ActiveWorkbook.Sheets(ActiveWorkbook.Sheets.Count))
+    wsNew.Name = SheetName
+    Set ws = wsNew
+
+    ' Solicita los años de inicio y fin
+    AñoInicio = InputBox("Ingresa el Año de Inicio", "Año de Inicio", Year(Date))
+    
+    ' Validar si el Año de Inicio es un número válido
+    If Not IsNumeric(AñoInicio) Or AñoInicio < 1 Then
+        MsgBox "Por favor, ingresa un año válido para el Año de Inicio.", vbExclamation
+        Exit Sub
+    End If
+    
+    AñoFin = InputBox("Ingresa el Año de Fin", "Año de Fin", Year(Date))
+
+    ' Validar si el Año de Fin es un número válido
+    If Not IsNumeric(AñoFin) Or AñoFin < 1 Then
+        MsgBox "Por favor, ingresa un año válido para el Año de Fin.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Convertir los años a enteros
+    AñoInicio = CInt(AñoInicio)
+    AñoFin = CInt(AñoFin)
+
+    ' Validar si el Año de Inicio es mayor al Año de Fin
+    If AñoInicio > AñoFin Then
+        MsgBox "El Año de Inicio no puede ser mayor que el Año de Fin.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Define las fechas de inicio y fin según los años dados
+    FechaInicio = DateSerial(AñoInicio, 1, 1) ' 1 de enero del Año de Inicio
+    FechaFin = DateSerial(AñoFin, 12, 31) ' 31 de diciembre del Año de Fin
+
+    ' Define la primera fila donde comenzará a escribir los datos
+    Fila = 2 ' Asumiendo que la fila 1 contendrá los encabezados
+    SemanaGlobal = 1 ' Iniciar la cuenta de semanas globales
+    SemanaActual = Application.WorksheetFunction.WeekNum(FechaInicio, 2) ' Iniciar con la semana actual
+
+    ' Escribir los encabezados en la primera fila
+    ws.Cells(1, 1).Value = "IDFecha"
+    ws.Cells(1, 2).Value = "Fecha"
+    ws.Cells(1, 3).Value = "Mes"
+    ws.Cells(1, 4).Value = "Mes Abreviado"
+    ws.Cells(1, 5).Value = "Mes Nro"
+    ws.Cells(1, 6).Value = "Año"
+    ws.Cells(1, 7).Value = "Periodo"
+    ws.Cells(1, 8).Value = "Mes - Año"
+    ws.Cells(1, 9).Value = "Mes - Dia"
+    ws.Cells(1, 10).Value = "Dia de la Semana"
+    ws.Cells(1, 11).Value = "Dia de la Semana Nro"
+    ws.Cells(1, 12).Value = "Semana del Año"
+    ws.Cells(1, 13).Value = "Semana Intervalo"
+    ws.Cells(1, 14).Value = "Dia del Mes"
+    ws.Cells(1, 15).Value = "Trimestre"
+    ws.Cells(1, 16).Value = "Semestre"
+    ws.Cells(1, 17).Value = "FinDeSemana"
+    ws.Cells(1, 18).Value = "Semana Global"
+    ws.Cells(1, 19).Value = "Dia del Año"
+
+    ' Comienza a iterar desde la fecha de inicio hasta la fecha de fin
+    For FechaActual = FechaInicio To FechaFin
+        ' IDFecha en formato YYYYMMDD
+        ws.Cells(Fila, 1).Value = Format(FechaActual, "YYYYMMDD")
+        
+        ' Llena la información para cada fecha
+        ws.Cells(Fila, 2).Value = FechaActual ' Fecha
+        ws.Cells(Fila, 3).Value = Format(FechaActual, "mmmm") ' Mes en texto
+        ws.Cells(Fila, 4).Value = Format(FechaActual, "mmm") ' Mes Abreviado
+        ws.Cells(Fila, 5).Value = Month(FechaActual) ' Mes número
+        ws.Cells(Fila, 6).Value = Year(FechaActual) ' Año
+        ws.Cells(Fila, 7).Value = Format(FechaActual, "YYYYMM") ' Periodo
+        ws.Cells(Fila, 8).Value = "'" & LCase(Format(FechaActual, "mmm-yy")) ' Mes - Año Abrev como texto
+        ws.Cells(Fila, 9).Value = "'" & LCase(Format(FechaActual, "mmm-dd")) ' Mes-Dia
+        ws.Cells(Fila, 10).Value = Format(FechaActual, "dddd") ' Día de la semana (completo)
+
+        ' Día de la semana (lunes=1, domingo=7)
+        ws.Cells(Fila, 11).Value = Weekday(FechaActual, vbMonday)
+
+        ' Calcular el trimestre
+        Trimestre = Application.WorksheetFunction.RoundUp(Month(FechaActual) / 3, 0)
+        ws.Cells(Fila, 15).Value = Trimestre ' Trimestre
+
+        ' Calcular el semestre
+        If Month(FechaActual) <= 6 Then
+            Semestre = 1
+        Else
+            Semestre = 2
+        End If
+        ws.Cells(Fila, 16).Value = Semestre ' Semestre
+
+        ' Calcular si es fin de semana (sábado o domingo)
+        If Weekday(FechaActual, vbMonday) >= 6 Then
+            EsFeriado = 1
+        Else
+            EsFeriado = 0
+        End If
+        ws.Cells(Fila, 17).Value = EsFeriado ' FinDeSemana
+
+        ' Calcular la semana del año, ajustada para que comience en lunes
+        SemanaDelAño = Application.WorksheetFunction.WeekNum(FechaActual, 2)
+        ws.Cells(Fila, 12).Value = SemanaDelAño ' Semana del año
+
+        ' Calcular el intervalo de la semana
+        SemanaInicio = FechaActual - Weekday(FechaActual, vbMonday) + 1
+        ws.Cells(Fila, 13).Value = Format(SemanaInicio, "dd-mm") & " al " & Format(SemanaInicio + 6, "dd-mm") ' Intervalo de la semana
+
+        ' Llenar la columna de la semana global solo cuando se cambie de semana
+        If SemanaDelAño <> SemanaActual Then
+            SemanaGlobal = SemanaGlobal + 1
+            SemanaActual = SemanaDelAño
+        End If
+        ws.Cells(Fila, 18).Value = SemanaGlobal ' Semana global
+
+        ' Calcular el día del año
+        DiaDelAño = FechaActual - DateSerial(Year(FechaActual), 1, 1) + 1
+        ws.Cells(Fila, 19).Value = DiaDelAño ' Día del año
+
+        ' Llenar el día del mes
+        ws.Cells(Fila, 14).Value = Day(FechaActual) ' Día del mes
+
+        ' Incrementa la fila
+        Fila = Fila + 1
+    Next FechaActual
+
+    ' Ajustar el ancho de todas las columnas
+    ws.Columns.AutoFit
+
+    MsgBox "Calendario generado con éxito :)" & vbCrLf & "Créditos MENQUIS BI y ChatGPT"
+End Sub
+
+' Función para verificar si existe una hoja con un nombre específico
+Function SheetExists(SheetName As String) As Boolean
+    On Error Resume Next
+    SheetExists = Not ActiveWorkbook.Sheets(SheetName) Is Nothing
+    On Error GoTo 0
+End Function
